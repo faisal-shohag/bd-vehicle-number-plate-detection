@@ -1,0 +1,13 @@
+train: ./train/images
+val: ./valid/images
+test: ./test/images
+
+nc: 1
+names: ['license_plate']
+
+roboflow:
+  workspace: kaiser-durden
+  project: bangladeshi-license-plate-fonfq
+  version: 1
+  license: Public Domain
+  url: https://universe.roboflow.com/kaiser-durden/bangladeshi-license-plate-fonfq/dataset/1

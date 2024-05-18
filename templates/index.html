@@ -1,0 +1,244 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Nameplate Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+  <body data-theme="light" class="p-4">
+        <header>
+            <div class="navbar bg-base-100 shadow-md rounded-full">
+                <a class="btn btn-ghost text-xl font-bold"><div><img class="h-10" src="https://cdn-icons-png.flaticon.com/512/4172/4172930.png"></div>Vehicle Number Plate Detector</a>
+              </div>
+        </header>
+
+
+        
+        <div class="flex mt-10 gap-5">
+
+            <form id="uploadForm"  class="flex-1 border-solid border-[1px] border-gray-700 shadow-lg rounded-lg p-10">
+                <div class="flex flex-col items-center justify-center w-full">
+                   <div class="flex mb-5 p-5 border items-center justify-center">
+                    <img class="h-[200px]" id="preview" alt="upload" src="https://cdn-icons-png.flaticon.com/512/685/685686.png">
+                   </div>
+                        <input id="dropzone-file"  type="file" name="file" accept="image/*" />
+                    
+                </div> 
+                <button type="submit" class="btn btn-primary w-full mt-4">Predict</button>
+                <div class="owner mt-10"></div>
+            </form>
+            <div id="result" class="w-1/2 p-3 border-solid border-[1px] border-gray-700 rounded-lg">
+               <div class="text-3xl px-2 py-2 font-bold">Result</div>
+                <div class="shadow-lg border rounded-lg">
+                    <div class="font-bold text-md p-5">Detected Image with Bounding Boxes</div>
+                    <div id="bounded" class="p-2 flex flex-col items-center justify-center mb-5">
+                        <img class="h-[100px]" src="https://cdn-icons-png.flaticon.com/512/4686/4686700.png"/>
+                        <div class="text-center">You will see the detected image with bounded box here.</div>
+                    </div>
+                </div>
+
+                <div class="shadow-lg border rounded-lg mt-5">
+                    <div class="font-bold text-md p-5">Cropped Image</div>
+                    <div id="cropped" class="p-2 flex flex-col items-center justify-center mb-5">
+                        <img class="h-[100px]" src="https://cdn-icons-png.flaticon.com/512/3342/3342178.png"/>
+                        <div class="text-center">You will see the detected cropped image  here.</div>
+                    </div>
+                </div>
+
+                <div class="shadow-lg border rounded-lg mt-5">
+                    <div class="font-bold text-md p-5">Detected Numberplate</div>
+                    <div id="plate" class="p-2 flex items-center flex-col justify-center mb-5">
+                        <img class="h-[100px]" src="https://cdn-icons-png.flaticon.com/512/3012/3012149.png"/>
+                        <div class="text-center">You will see the extracted data from numberplate here.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <script>
+
+           const database = {
+            "450962": {
+                "name": "Md. Sarkar",
+                "address": "Rangpur, Bangladesh",
+                "phone": "+012345678",
+                "img": "https://images.generated.photos/fm3HYlW1LdBRhcZSm3r6GhKi6A_mNR1-EhwgVe8J6so/rs:fit:256:256/czM6Ly9pY29uczgu/Z3Bob3Rvcy1wcm9k/LnBob3Rvcy92M18w/NDU4NTI4LmpwZw.jpg"
+            },
+            "128946": {
+                "name": "Ayesha Rahman",
+                "address": "Dhaka, Bangladesh",
+                "phone": "+012345679",
+                "img": "https://softexpo.com.bd/assets/media/speaker_photo/thumbs/1676123055.jpg"
+            },
+            "220080": {
+                "name": "Tanvir Hossain",
+                "address": "Chittagong, Bangladesh",
+                "phone": "+012345680",
+                "img": "https://www.shutterstock.com/image-photo/young-indian-student-man-red-260nw-1179928600.jpg"
+            },
+            "328301": {
+                "name": "Sadikul Karim",
+                "address": "Sylhet, Bangladesh",
+                "phone": "+012345681",
+                "img": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQSOwnr0eu7ynCe5DwkMG1bNcFAmLoK2mzxX_WwKncpOw&s"
+            },
+            "394086": {
+                "name": "Rahim Uddin",
+                "address": "Khulna, Bangladesh",
+                "phone": "+012345682",
+                "img": "https://thumbs.dreamstime.com/b/indian-man-student-shirt-posed-outdoor-229831859.jpg"
+            },
+            "202864": {
+                "name": "Fahim Ahmed",
+                "address": "Rajshahi, Bangladesh",
+                "phone": "+012345683",
+                "img": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRDDNlKKGlLIJYO7701hjytFlranqlgkhHxLeK1TF3Pv1HfgvBNHKpVKr-Zfox5GonBn8&usqp=CAU"
+            }
+        }
+        
+            
+            const spinner = `<div class="flex justify-center flex-col gap-2 items-center mt-10 mb-10"><div role="status">
+                <svg aria-hidden="true" class="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                    <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                </svg>
+                <span class="sr-only">Loading...</span>
+            </div>Detecting. Please wait..</div>`
+
+
+            document.getElementById('dropzone-file').addEventListener('change', function(event) {
+                var file = event.target.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var preview = document.getElementById('preview');
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            const loading = () => {
+                $('#bounded').html(`
+                <div class="flex items-center justify-center">${spinner}</div>
+                `)
+
+                $('#cropped').html(`
+                <div class="flex items-center justify-center">${spinner}</div>
+                `)
+
+                
+                $('#plate').html(`
+                <div class="flex items-center justify-center">${spinner}</div>
+                `)
+            }
+
+            const renew = () => {
+                $('#bounded').html(`
+                <img class="h-[100px]" src="https://cdn-icons-png.flaticon.com/512/4686/4686700.png"/>
+                <div class="text-center">You will see the detected image with bounded box here.</div>
+                `)
+
+                $('#cropped').html(`
+                <img class="h-[100px]" src="https://cdn-icons-png.flaticon.com/512/3342/3342178.png"/>
+                <div class="text-center">You will see the detected cropped image  here.</div>
+                `)
+
+                
+                $('#plate').html(`
+                <img class="h-[100px]" src="https://cdn-icons-png.flaticon.com/512/3012/3012149.png"/>
+                <div class="text-center">You will see the extracted data from numberplate here.</div>
+                `)
+            }
+
+
+            document.getElementById('uploadForm').addEventListener('submit', function(event) {
+                loading()
+                $('.owner').html('')
+                
+
+                event.preventDefault();
+                var formData = new FormData();
+                var fileInput = document.getElementById('dropzone-file');
+                var file = fileInput.files[0];
+                formData.append('file', file);
+                console.log(file)
+                if(!file){
+                    renew()
+                    Swal.fire({
+                        title: "Please select file.",
+                        text: "Select an image file.",
+                        icon: "error"
+                      });
+                      return
+                }
+    
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                   console.log(data)
+
+                   if (data.bounded_image) {
+                    const bounded_image = 'data:image/jpeg;base64,' + data.bounded_image
+                    $('#bounded').html(`
+                    <img src="${bounded_image}" alt="bounded_image"/>
+                    `)
+                   }
+
+                   if (data.cropped_image) {
+                    const cropped_image = 'data:image/jpeg;base64,' + data.cropped_image
+                    $('#cropped').html(`
+                    <img class="max-h-[300px]" src="${cropped_image}" alt="bounded_image"/>
+                    `)
+                   }
+
+                   $('#plate').html(`
+                   <div class="text-2xl">Text: ${data.plate}<div>
+                    <div class="font-bold text-2xl">Number: ${data.plate_number}<div>
+                    `)
+
+                    const info = database[data.plate_number]
+                    if(info) {
+                        $('.owner').html(`<div class="text-center p-5 border rounded-xl">
+                        <div class="text-2xl font-bold text-center mb-3">Car Owner Info</div>
+                        <center><img class="h-[100px] w-[100px] rounded-full" src="${info.img}"/></center>
+                        <div class="text-xl">${info.name}</div>
+                        <div class="text-sm">Address: ${info.address}</div>
+                        <div class="text-sm">Phone: ${info.phone}</div>
+                        <div>
+                        `)
+                    } else{
+                        $('.owner').html(`<div class="text-center p-5 border rounded-xl">
+                            <div class="text-2xl font-bold text-center mb-3">Car Owner Info</div>
+                            <div class="text-red-500">No owner found on the database!</div>
+                            <div>
+                            `)
+                    }
+                })
+                .catch(error => {
+                    renew()
+                    Swal.fire({
+                        title: "An error occured.",
+                        text: "Please upload an valid image file/Check your server.",
+                        icon: "error"
+                      });
+                    console.log(error)
+                    var message = document.getElementById('message');
+                    message.textContent = 'An error occurred while uploading the file.';
+                    console.error('Error:', error);
+                });
+            });
+
+
+
+        </script>
+  </body>
+</html>
